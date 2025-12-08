@@ -13,17 +13,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @router.post(
-    path="/",
-    summary="Health Check",
-    description="Check service health status",
-    status_code=200,
-)
-async def check_health(
-    health_check_service: HealthCheckService = Injects("health_check_service"),
-) -> PlainTextResponse:
-    return PlainTextResponse("OK")
-
-@router.post(
     path="/db",
     summary="Database Health Check",
     description="Check database health status",
