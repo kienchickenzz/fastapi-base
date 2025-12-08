@@ -64,6 +64,4 @@ async def get_db_health(
     page_size = request.page_size
 
     result = await health_check_service.get_db_health_checks(target_page, page_size)
-    logging.info(result)
-    
-    return JSONResponse(content=result[0], status_code=200)
+    return JSONResponse(content=result.model_dump(mode="json"), status_code=200)

@@ -1,4 +1,4 @@
-from typing import Optional
+from datetime import datetime
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from humps import camelize
@@ -72,14 +72,6 @@ class ResponseBase(BaseModel):
     )
 
 class PaginatedResponseBase(ResponseBase):
-    model_config = ConfigDict(
-        frozen=True,
-        alias_generator=camelize,
-        populate_by_name=True,
-        validate_assignment=True,
-        extra='ignore',
-        from_attributes=True
-    )
-
     current_page: int
     total_pages: int
+    page_size: int

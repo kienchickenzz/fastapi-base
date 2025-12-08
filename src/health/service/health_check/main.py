@@ -1,6 +1,8 @@
 from src.health.database.repository.health_check.main import HealthCheckRepository
 from src.base.dto.main import PaginatedResponseBase
 
+from src.health.dto.main import HealthCheckDto, HealthCheckResponseDto
+
 class HealthCheckService:
     def __init__(self, health_check_repository: HealthCheckRepository):
         self.health_check_repository = health_check_repository
@@ -15,7 +17,6 @@ class HealthCheckService:
             skip=skip,
         )
 
-    # TODO: Chỉnh response DTO để trả về đúng định dạng
     async def get_db_health_checks(self, target_page: int, page_size: int):
         skip = (target_page - 1) * page_size
         result, count = await self.health_check_repository.get_multiple(
@@ -23,9 +24,10 @@ class HealthCheckService:
             skip=skip,
         )
 
-        return PaginatedResponseBase.from_repository(
-            records=result,
-            total=count,
-            target_page=target_page,
+        return HealthCheckResponseDto(
+            health_checks=[ HealthCheckDto( **item.__dict__ ) for item in result ],
+            current_page=target_page,
+            total_pages=(count + page_size - 1) // page_size,
             page_size=page_size,
         )
+    
