@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from pydantic import BaseModel, field_serializer
+from pydantic import field_serializer
 
 from src.base.dto.main import PaginatedRequestBase, PaginatedResponseBase, ResponseBase
 
-class HealthCheckRequest(PaginatedRequestBase):
+class DbHealthCheckRequest(PaginatedRequestBase):
     pass
 
-class HealthCheckDto(ResponseBase):
+class DbHealthCheckDto(ResponseBase):
     id: int
     created_at: datetime
     updated_at: datetime
@@ -16,5 +16,5 @@ class HealthCheckDto(ResponseBase):
     def serialize_dates(self, value: datetime) -> str:
         return value.isoformat() if value else None # type: ignore
 
-class HealthCheckResponseDto(PaginatedResponseBase):
-    health_checks: list[HealthCheckDto]
+class DbHealthCheckResponseDto(PaginatedResponseBase):
+    health_checks: list[DbHealthCheckDto]
