@@ -3,6 +3,9 @@ from src.health.dto.main import (
     DbHealthCheckDto, DbHealthCheckResponseDto
 )
 
+import logging
+logger = logging.getLogger(__name__)
+
 class HealthCheckService:
     def __init__(self, health_check_repository: HealthCheckRepository):
         self.health_check_repository = health_check_repository
@@ -27,3 +30,8 @@ class HealthCheckService:
             total_pages=total_pages,
             page_size=page_size,
         )
+
+    async def get_latest_db_health_check(self) -> DbHealthCheckDto:
+        result = await self.health_check_repository.get_latest_check()
+        logger.info(result)
+        return DbHealthCheckDto(**result.__dict__)

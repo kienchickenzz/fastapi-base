@@ -20,7 +20,7 @@ grant create on schema public to migrator;
 
 -- Writer grants
 alter default privileges for role user_migrate in schema public grant insert, delete, select, update on tables to writeaccess;
-alter default PRIVILEGES for role user_migrate in schema public grant USAGE, select on SEQUENCES to writeaccess;
+alter default privileges for role user_migrate in schema public grant USAGE, select on SEQUENCES to writeaccess;
 
 -- Reader grants
 alter default privileges for role user_migrate in schema public grant select on tables to readaccess;

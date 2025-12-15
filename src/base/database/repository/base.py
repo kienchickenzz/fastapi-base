@@ -1,18 +1,20 @@
 from abc import ABC
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, Optional, Sequence, Type, TypeVar, Generic
+from typing import Any, AsyncIterator, Optional, Sequence, Type, TypeVar, Generic, Union, cast
 
 from pydantic.alias_generators import to_snake
-from sqlalchemy import insert, select, update, func
-from sqlalchemy.exc import IntegrityError
+
+from sqlalchemy import insert, select, update, func, text
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.engine import Result, RowMapping, CursorResult
 
 from src.base.database.model.base import Base
 from src.base.exception.repository.base import NotFoundException
 
 T = TypeVar("T", bound=Base)
 
-
+# TODO: Triển khai phương thức execute custom SQL query
 class Repository(ABC, Generic[T]):
     """
     Abstract repository that provides ready-to-be-used get, create and update operations to
@@ -47,7 +49,7 @@ class Repository(ABC, Generic[T]):
         async with self._get_session() as session:
             query = select(self._model)
             scalars = await session.scalars(query)
-            result = scalars.unique().all()
+            result = scalars.all()
 
         return result
 
@@ -65,13 +67,14 @@ class Repository(ABC, Generic[T]):
         async with self._get_session() as session:
             query = select(self._model).where(self._model.id == entity_id)
             scalars = await session.scalars(query)
-            result: Optional[T] = scalars.unique().first()
+            result: Optional[T] = scalars.first()
             
             if result is None:
                 raise NotFoundException(key_name="int", table_name=self._model.__tablename__, entity_id=entity_id)
 
         return result
     
+
     async def get_multiple(self, skip: Optional[int] = 0, limit: Optional[int] = 20) -> tuple[Sequence[T], int]:
         """
         Fetch paginated entities with total count. Method uses generic type T
@@ -99,7 +102,7 @@ class Repository(ABC, Generic[T]):
                 query = query.limit(limit)
 
             scalars = await session.scalars(query)
-            result = scalars.unique().all()
+            result = scalars.all()
 
         return result, total
 
@@ -115,14 +118,18 @@ class Repository(ABC, Generic[T]):
         """
         async with self._get_session() as session:
             query = insert(self._model).values(values).returning(self._model.id)
+            result: Optional[int]
 
             try:
-                result: Optional[int] = await session.scalar(query)
+                result = await session.scalar(query)
                 await session.commit()
             except IntegrityError as error:
                 self._parse_sql_error(error)
-
-        return await self.get_one(result) # type: ignore
+        
+        if result is None:
+            raise ValueError("Insert failed, no ID returned")
+        
+        return await self.get_one(result)
 
     async def update(self, entity_id: int, values: dict[str, Any]) -> T:
         """
@@ -147,6 +154,44 @@ class Repository(ABC, Generic[T]):
                 self._parse_sql_error(error)
 
         return await self.get_one(result) # type: ignore
+    
+    async def execute_sql(
+        self,
+        sql: str,
+        parameters: Optional[dict[str, Any]] = None,
+        fetch: bool =True,
+    ) -> Union[Sequence[RowMapping], int]:
+        """
+        Execute custom SQL query.
+        
+        :param sql: Raw SQL query string
+        :param parameters: Query parameters (prevents SQL injection)
+        :param fetch: If True, fetch results. If False, execute without fetching (for INSERT/UPDATE/DELETE)
+        :return: Results based on parameters
+        """
+        async with self._get_session() as session:
+            try:
+                query = text(sql)
+                
+                if parameters:
+                    result = await session.execute(query, parameters)
+                else:
+                    result = await session.execute(query)
+
+                if not fetch:
+                    await session.commit()
+                    cursor_result = cast(CursorResult, result)
+                    return cursor_result.rowcount
+
+                return result.mappings().all()
+                
+            except IntegrityError as error:
+                await session.rollback()
+                # You can add more specific error handling here
+                self._parse_sql_error(error)
+
+        # This line should never be reached
+        raise RuntimeError("Unexpected execution flow")
 
     def _parse_sql_error(self, exc: IntegrityError) -> None:
         code = str(getattr(exc.orig, "pgcode", ""))

@@ -39,3 +39,15 @@ async def get_db_health(
 
     result = await health_check_service.get_db_health_checks(target_page, page_size)
     return JSONResponse(content=result.model_dump(mode="json"), status_code=200)
+
+@router.get(
+    path="/db/latest",
+    summary="Get Latest Database Health Check",
+    description="Retrieve the latest database health check entry",
+    status_code=200,
+)
+async def get_latest_db_health(
+    health_check_service: HealthCheckService = Injects("health_check_service"),
+):
+    result = await health_check_service.get_latest_db_health_check()
+    return JSONResponse(content=result.model_dump(mode="json"), status_code=200)
