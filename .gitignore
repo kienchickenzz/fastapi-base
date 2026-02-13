@@ -18,3 +18,10 @@ uv.lock
 # Vscode
 **/.vscode
 **/.mypy_cache
+
+# AI
+CLAUDE.md
+
+# Logs
+**/logs
+**/*.log

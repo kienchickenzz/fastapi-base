@@ -1,16 +1,24 @@
+"""
+FastAPI application factory module.
+Cung cấp hàm tạo FastAPI app với cấu hình chuẩn cho project.
+"""
+
 from typing import Type, Any
 from typing_extensions import Annotated, Doc
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.base.middleware.global_exception import GlobalExceptionMiddleware
 from src.base.exception.api.base import HTTPException
-from src.base.exception.api.handler import rest_exception_handler
+from src.base.exception.api.handler import (
+    rest_exception_handler,
+    value_error_handler,
+    generic_exception_handler,
+)
 from src.base.router.docs import router as router_docs
 from src.base.router.health import router as router_health
 from src.base.initializer import Initializer
-from src.base.config import Config
+from src.config import Config
 
 def create_fastapi_app(
     *,
@@ -71,7 +79,11 @@ def create_fastapi_app(
         version=version,
         summary=summary,
         contact={"name": team_name, "url": team_url},
-        exception_handlers={HTTPException: rest_exception_handler}, # Handle business logic exceptions
+        exception_handlers={
+            HTTPException: rest_exception_handler,
+            ValueError: value_error_handler,
+            Exception: generic_exception_handler,
+        },
         swagger_ui_parameters={
             "defaultModelsExpandDepth": -1,  # collapse/remove schemas by default in swagger UI
         },
@@ -83,8 +95,6 @@ def create_fastapi_app(
     app.include_router(router_health, prefix="")
 
     # Required middleware
-    # app.add_middleware(LoggingMiddleware)  # This is the most inner middleware right before the router.
-    app.add_middleware(GlobalExceptionMiddleware) # Handle unexpected exceptions
     app.add_middleware(
         CORSMiddleware,
         allow_origins=(

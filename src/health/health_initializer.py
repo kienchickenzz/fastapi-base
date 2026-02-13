@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from fastapi import FastAPI
 
 from src.base.initializer import State, Initializer
-from src.health.database.repository.health_check.main import HealthCheckRepository
+from src.health.database.repository.health import HealthCheckRepository
 from src.health.service.health_check.main import HealthCheckService
 
 class ServiceState(State):

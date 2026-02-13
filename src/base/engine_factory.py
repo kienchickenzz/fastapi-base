@@ -7,7 +7,7 @@ from asyncpg import Connection # type: ignore[import]
 from sqlalchemy import NullPool
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from src.base.config import Config
+from src.config import Config
 
 
 class EngineFactory:

@@ -6,11 +6,11 @@ project_root = current_dir.parent.parent.parent # Thư mục gốc của project
 sys.path.insert(0, str(project_root))
 
 
-from src.base.config import Config
+from src.config import Config
 
 
 from src.base.database.model.base import Base
-from src.health.database.model.health_check.main import HealthCheck
+from health.database.model.health_check import HealthCheck
 
 
 from os import environ

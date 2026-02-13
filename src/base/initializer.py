@@ -1,10 +1,14 @@
+"""
+Application lifecycle management module.
+Quản lý startup/shutdown và validation cho FastAPI app.
+"""
+
 from types import TracebackType
 from typing import Optional, Type, Mapping, Any
 
 from fastapi import FastAPI
 
-from src.base.middleware.global_exception import GlobalExceptionMiddleware
-from src.base.config import Config
+from src.config import Config
 from src.base.engine_factory import EngineFactory
 
 
@@ -49,7 +53,6 @@ class Initializer:
         self._setup_app()
         self._validate_openapi()
         self._validate_endpoints()
-        self._validate_middleware()
 
         # Database setup
         await self.engine_factory.__aenter__()
@@ -93,7 +96,3 @@ class Initializer:
         endpoints = [route.path for route in self._app.routes]
         assert self._HEALTH_ENDPOINT in endpoints, "health_endpoint_missing"
         assert self._DOCS_ENDPOINT in endpoints, "docs_endpoint_missing"
-
-    def _validate_middleware(self) -> None:
-        middlewares = [middleware.cls for middleware in self._app.user_middleware]
-        assert GlobalExceptionMiddleware in middlewares, "global_exception_middleware_missing"

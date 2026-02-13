@@ -1,53 +1,94 @@
+"""
+Health check endpoints module.
+Cung cấp các API endpoints để kiểm tra trạng thái database.
+"""
+
+import logging
+
 from fastapi import APIRouter, Depends
-from fastapi.responses import PlainTextResponse, JSONResponse
 
 from src.base.dependency_injection import Injects
 from src.health.doc import Tags
 from src.health.service.health_check.main import HealthCheckService
-from src.health.dto.main import DbHealthCheckRequest
+from src.health.dto.main import (
+    DbHealthCheckRequest,
+    DbHealthCheckDto,
+    DbHealthCheckResponseDto,
+    DbHealthCheckCreateResponse,
+)
+
+
+logger = logging.getLogger("app")
 
 router = APIRouter(tags=[Tags.HEALTH], prefix="/health")
 
-import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 @router.post(
     path="/db",
+    response_model=DbHealthCheckCreateResponse,
     summary="Database Health Check",
-    description="Check database health status",
-    status_code=200,
+    description="Tạo một health check entry mới để verify database connection",
+    status_code=201,
 )
 async def check_db_health(
     health_check_service: HealthCheckService = Injects("health_check_service"),
-) -> PlainTextResponse:
-    await health_check_service.check_db_health()
-    return PlainTextResponse("DB OK")
+) -> DbHealthCheckCreateResponse:
+    """
+    Tạo một health check entry mới trong database.
+
+    Args:
+        health_check_service (HealthCheckService): Service xử lý health check
+
+    Returns:
+        DbHealthCheckCreateResponse: Response chứa message và id
+    """
+    return await health_check_service.check_db_health()
+
 
 @router.get(
     path="/db",
-    summary="Database Health Check",
-    description="Check database health status",
+    response_model=DbHealthCheckResponseDto,
+    summary="Get Database Health Checks",
+    description="Lấy danh sách health check entries với pagination",
     status_code=200,
 )
 async def get_db_health(
     request: DbHealthCheckRequest = Depends(DbHealthCheckRequest.as_query),
     health_check_service: HealthCheckService = Injects("health_check_service"),
-):
-    target_page = request.target_page
-    page_size = request.page_size
+) -> DbHealthCheckResponseDto:
+    """
+    Lấy danh sách health check entries với pagination.
 
-    result = await health_check_service.get_db_health_checks(target_page, page_size)
-    return JSONResponse(content=result.model_dump(mode="json"), status_code=200)
+    Args:
+        request (DbHealthCheckRequest): Request params (target_page, page_size)
+        health_check_service (HealthCheckService): Service xử lý health check
+
+    Returns:
+        DbHealthCheckResponseDto: Danh sách health checks với thông tin pagination
+    """
+    return await health_check_service.get_db_health_checks(
+        target_page=request.target_page,
+        page_size=request.page_size,
+    )
+
 
 @router.get(
     path="/db/latest",
+    response_model=DbHealthCheckDto,
     summary="Get Latest Database Health Check",
-    description="Retrieve the latest database health check entry",
+    description="Lấy health check entry mới nhất",
     status_code=200,
 )
 async def get_latest_db_health(
     health_check_service: HealthCheckService = Injects("health_check_service"),
-):
-    result = await health_check_service.get_latest_db_health_check()
-    return JSONResponse(content=result.model_dump(mode="json"), status_code=200)
+) -> DbHealthCheckDto:
+    """
+    Lấy health check entry mới nhất.
+
+    Args:
+        health_check_service (HealthCheckService): Service xử lý health check
+
+    Returns:
+        DbHealthCheckDto: Health check entry mới nhất
+    """
+    return await health_check_service.get_latest_db_health_check()

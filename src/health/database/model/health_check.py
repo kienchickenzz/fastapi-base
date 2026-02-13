@@ -1,7 +1,3 @@
-from typing import Optional
-
-from sqlalchemy.orm import Mapped, mapped_column
-
 from src.base.database.model.base import Base
 
 
