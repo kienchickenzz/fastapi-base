@@ -17,7 +17,9 @@ _logger_config = LoggerConfig(project_root=Path(__file__).parent.parent)
 _logger_factory = LoggerFactory(_logger_config)
 logger = _logger_factory.get_instance()
 
-
+ # TODO: Thêm note bàn luận về kiến trúc, cách tổ chức code,
+ # cách tổ chức hiện tại không thể scale được theo hướng module hóa vì 
+ # 1 module = 1 app FastAPI, cần refactor lại để có thể scale theo module mà không cần nhiều app FastAPI
 def main() -> None:
     """
     Khởi chạy server với uvicorn.
