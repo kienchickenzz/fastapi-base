@@ -6,7 +6,7 @@ from abc import ABC
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Optional, Sequence, Type, TypeVar, Generic
 
-from sqlalchemy import insert, select, update, text
+from sqlalchemy import insert, select, update, delete, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.engine import RowMapping
 
@@ -19,9 +19,6 @@ T = TypeVar("T", bound=Base)
 class Repository(ABC, Generic[T]):
     """
     Abstract repository cung cấp các CRUD operations cho SQLAlchemy models.
-
-    Delete method không được cung cấp mặc định vì khuyến khích immutability,
-    subclass có thể implement khi cần thiết.
     """
 
     def __init__(self, engine: AsyncEngine, db_model: Type[T]):
@@ -147,6 +144,27 @@ class Repository(ABC, Generic[T]):
                 update(self._model)
                 .where(self._model.id == entity_id)
                 .values(values)
+                .returning(self._model)
+            )
+            result = await session.execute(query)
+            entity = result.scalar_one_or_none()
+            await session.commit()
+            return entity
+
+    async def delete(self, entity_id: int) -> Optional[T]:
+        """
+        Xóa một entity theo id.
+
+        Args:
+            entity_id (int): ID của entity cần xóa
+
+        Returns:
+            Optional[T]: Entity đã xóa hoặc None nếu không tìm thấy
+        """
+        async with self._get_session() as session:
+            query = (
+                delete(self._model)
+                .where(self._model.id == entity_id)
                 .returning(self._model)
             )
             result = await session.execute(query)

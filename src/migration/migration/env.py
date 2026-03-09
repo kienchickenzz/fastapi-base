@@ -10,12 +10,12 @@ from src.config import Config
 
 
 from src.base.database.model.base import Base
-from health.database.model.health_check import HealthCheck
+from src.health.database.model.health_check import HealthCheck
 
 
 from os import environ
 from dotenv import load_dotenv
-env_path = project_root / '.env.dev'
+env_path = project_root / '.env'
 load_dotenv(env_path)
 
 from logging.config import fileConfig

@@ -1,5 +1,9 @@
+"""
+Module định nghĩa base exceptions cho REST API.
+Cung cấp HTTPException với support cho OpenAPI documentation.
+"""
 from http import HTTPStatus
-from typing import Any, Dict, Type
+from typing import Any, Type
 
 from pydantic import BaseModel
 from starlette.responses import JSONResponse
@@ -64,23 +68,41 @@ class HTTPException(Exception):
     payload: BaseModel
 
     def __init__(self, **payload_args: Any):
+        """
+        Khởi tạo HTTPException với payload data.
+
+        Args:
+            **payload_args (Any): Arguments để tạo payload model.
+
+        Raises:
+            AssertionError: Nếu subclass không định nghĩa 'status'.
+        """
         assert hasattr(self, "status"), "http_status_not_defined"
         self.payload: BaseModel = self.model(**payload_args)
 
     def get_body(self) -> JSONResponse:
         """
-        Converts the exception into a JSONResponse that matches `model` definition.
+        Chuyển đổi exception thành JSONResponse.
 
-        :return: JSONResponse with the exception payload that will be returned to the client.
+        Returns:
+            JSONResponse: Response với payload và status code tương ứng.
         """
         return JSONResponse(self.payload.dict(), status_code=self.status, headers=None)
 
     @classmethod
-    def get_description(cls) -> Dict[int, Any]:
+    def get_description(cls) -> dict[int | str, dict[str, Any]]:
         """
-        Exposes the exception in Swagger through OpenAPI definitions.
-        See https://fastapi.tiangolo.com/advanced/additional-responses/
+        Expose exception trong Swagger thông qua OpenAPI definitions.
 
-        :return: dictionary with the Pydantic model that describes the HTTPException.
+        Sử dụng với FastAPI responses parameter để document
+        possible error responses trong API documentation.
+
+        Returns:
+            dict[int | str, dict[str, Any]]: Dictionary với Pydantic model mô tả exception.
+
+        Example:
+            >>> @router.get("/users/{id}", responses=NotFoundException.get_description())
+            ... async def get_user(id: int):
+            ...     ...
         """
         return {cls.status.value: {"model": cls.model}}

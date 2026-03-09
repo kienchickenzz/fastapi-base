@@ -1,3 +1,7 @@
+"""
+Module cung cấp dependency injection utilities cho FastAPI.
+Cho phép inject dependencies từ request.state vào routers.
+"""
 from typing import Any
 
 from fastapi import Request, params
@@ -26,12 +30,40 @@ def Injects(  # noqa: N802
         ),
     ] = True,
 ) -> Any:
+    """
+    Inject một dependency từ request.state vào router.
+
+    Sử dụng như FastAPI Depends() nhưng lấy dependency từ State
+    thay vì gọi function.
+
+    Args:
+        dependency (str): Tên của dependency trong State.
+        use_cache (bool): Cache kết quả trong request. Mặc định True.
+
+    Returns:
+        Any: Dependency value từ request.state.
+
+    Raises:
+        RuntimeError: Nếu dependency không tồn tại trong state.
+
+    Example:
+        >>> @router.get("/users")
+        ... async def get_users(
+        ...     user_service: UserService = Injects("user_service")
+        ... ):
+        ...     return await user_service.get_all()
+    """
+
     def _inject_from_state(request: Request) -> Any:
         # Sử dụng getattr với default=None để tránh exception chaining
         # từ Starlette State.__getattr__ (KeyError → AttributeError)
         value = getattr(request.state, dependency, None)
         if value is None:
-            raise ValueError(f"Dependency '{dependency}' not found in State.")
+            raise RuntimeError(
+                f"Dependency '{dependency}' not found in request.state. "
+                f"Ensure it is registered in the appropriate Module and "
+                f"added to AppInitializer._modules."
+            )
         return value
 
     return params.Depends(dependency=_inject_from_state, use_cache=use_cache)
@@ -54,6 +86,24 @@ def InjectState(  # noqa: N802
         ),
     ] = True,
 ) -> Any:
+    """
+    Inject toàn bộ request.state vào router.
+
+    Hữu ích khi cần truy cập nhiều dependencies cùng lúc
+    hoặc khi dependency name chỉ biết lúc runtime.
+
+    Args:
+        use_cache (bool): Cache kết quả trong request. Mặc định True.
+
+    Returns:
+        Any: Starlette State object chứa tất cả dependencies.
+
+    Example:
+        >>> @router.get("/info")
+        ... async def get_info(state: State = InjectState()):
+        ...     return {"config": state.config}
+    """
+
     def _inject_state(request: Request) -> datastructures.State:
         return request.state
 

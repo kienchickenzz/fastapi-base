@@ -54,6 +54,10 @@ def create_fastapi_app(
         str,
         Doc("The URL for support questions. It will be added to the generated OpenAPI."),
     ] = str(),
+    root_path: Annotated[
+        str,
+        Doc("The root path prefix for all endpoints (e.g., '/webhook/lark')."),
+    ] = str(),
     **fastapi_configs: Annotated[
         Any,
         Doc(
@@ -70,9 +74,17 @@ def create_fastapi_app(
     """
     fastapi_configs.pop("redoc_url", None)
     fastapi_configs.pop("contact", None)
+    fastapi_configs.pop("docs_url", None)
+    fastapi_configs.pop("openapi_url", None)
+
+    # Build docs URLs với root_path prefix
+    docs_url = f"{root_path}/docs"
+    openapi_url = f"{root_path}/openapi.json"
 
     app = FastAPI(
         redoc_url=None,
+        docs_url=docs_url,
+        openapi_url=openapi_url,
         lifespan=initializer,
         title=title,
         description=description,
@@ -90,9 +102,9 @@ def create_fastapi_app(
         **fastapi_configs,
     )
 
-    # Required endpoints
-    app.include_router(router_docs, prefix="")
-    app.include_router(router_health, prefix="")
+    # Required endpoints with root_path prefix
+    app.include_router(router_docs, prefix=root_path)
+    app.include_router(router_health, prefix=root_path)
 
     # Required middleware
     app.add_middleware(

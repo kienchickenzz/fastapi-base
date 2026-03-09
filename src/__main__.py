@@ -1,13 +1,14 @@
 """
 Entry point của FastAPI application.
 """
-
 import argparse
-import logging
+from os import environ
 from pathlib import Path
 
 import uvicorn
+from dotenv import load_dotenv
 
+from src.config import Config
 from src.logger.LoggerConfig import LoggerConfig
 from src.logger.LoggerFactory import LoggerFactory
 
@@ -17,23 +18,24 @@ _logger_config = LoggerConfig(project_root=Path(__file__).parent.parent)
 _logger_factory = LoggerFactory(_logger_config)
 logger = _logger_factory.get_instance()
 
- # TODO: Thêm note bàn luận về kiến trúc, cách tổ chức code,
- # cách tổ chức hiện tại không thể scale được theo hướng module hóa vì 
- # 1 module = 1 app FastAPI, cần refactor lại để có thể scale theo module mà không cần nhiều app FastAPI
-def main() -> None:
+
+
+def run_server(args: argparse.Namespace) -> None:
     """
-    Khởi chạy server với uvicorn.
+    Khởi chạy FastAPI server với uvicorn.
+
+    Args:
+        args (argparse.Namespace): Parsed arguments chứa debug flag.
     """
-    parser = argparse.ArgumentParser(description="FastAPI Application Server")
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Chạy ở chế độ debug với hot reload",
-    )
-    args = parser.parse_args()
+    # Load env và config
+    load_dotenv('.env')
+    config = Config(environ)
+
+    root_path = config.get_config("ROOT_PATH", "")
 
     logger.info("Starting application...")
     logger.info(f"Debug mode: {args.debug}")
+    logger.info(f"Root path: {root_path}")
 
     uvicorn.run(
         "src.main:app",
@@ -45,5 +47,50 @@ def main() -> None:
     )
 
 
+def main() -> None:
+    """
+    Entry point chính, parse arguments và dispatch subcommand.
+    """
+    parser = argparse.ArgumentParser(
+        description="FastAPI Application Server",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  uv run python -m src                  # Start server (default)
+  uv run python -m src server           # Start server explicitly
+  uv run python -m src server --debug   # Start server in debug mode
+        """,
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # =================================================================
+    # Subcommand: server (default)
+    # =================================================================
+    server_parser = subparsers.add_parser(
+        "server",
+        help="Start the FastAPI server",
+    )
+    server_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Chạy ở chế độ debug với hot reload",
+    )
+    server_parser.set_defaults(func=run_server)
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # Nếu không có subcommand, mặc định chạy server
+    if args.command is None:
+        # Chạy server với default debug=False
+        args.debug = False
+        run_server(args)
+    else:
+        # Dispatch đến subcommand tương ứng
+        args.func(args)
+
+
 if __name__ == "__main__":
     main()
+
