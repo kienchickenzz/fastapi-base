@@ -21,8 +21,10 @@ from src.health.doc import Tags as HealthTags
 
 
 # Load environment variables
-load_dotenv('.env')
 config = Config(environ)
+
+# Lấy root_path từ config (prefix cho tất cả endpoints khi deploy sau reverse proxy)
+root_path = config.get_config("ROOT_PATH", "")
 
 # Combine OpenAPI tags từ tất cả modules
 openapi_tags = (
@@ -38,6 +40,7 @@ app = create_fastapi_app(
     team_name="core",
     team_url="https://invalid-address.ee",
     openapi_tags=openapi_tags,
+    root_path=root_path,
 )
 
 # Register routers từ các modules
